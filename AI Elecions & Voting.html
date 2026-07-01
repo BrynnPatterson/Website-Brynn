@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ballot & Byte — AI's Impact on Elections</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Spectral:wght@400;500;600;700&family=Spectral+SC:wght@600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root{
+    --ink:#0E1526;
+    --ink-2:#141D33;
+    --paper:#F1EEE4;
+    --paper-2:#E8E2D2;
+    --signal:#E8A33D;
+    --civic:#5C7FA6;
+    --alert:#C4432B;
+    --line:#2A3A55;
+    --line-light:#D8D1BE;
+    --good:#5B8266;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--ink);
+    color:var(--paper);
+    font-family:'IBM Plex Sans', sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.display{
+    font-family:'Spectral', serif;
+    font-weight:600;
+    letter-spacing:-0.01em;
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    text-transform:uppercase;
+    letter-spacing:0.14em;
+    font-size:11px;
+    color:var(--signal);
+  }
+  a{color:var(--signal);}
+  ::selection{background:var(--signal);color:var(--ink);}
+
+  /* ===== Header ===== */
+  header.site{
+    padding:34px 24px 18px;
+    max-width:1100px;
+    margin:0 auto;
+    border-bottom:1px solid var(--line);
+  }
+  .mark{
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .mark .stub{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:var(--civic);
+    border:1px solid var(--line);
+    padding:2px 8px;
+    border-radius:2px;
+    letter-spacing:0.08em;
+  }
+  header.site h1{
+    font-size:clamp(28px,5vw,42px);
+    margin:8px 0 4px;
+    color:var(--paper);
+  }
+  header.site h1 em{
+    font-style:italic;
+    color:var(--signal);
+  }
+  header.site p.sub{
+    color:#B7BFD4;
+    max-width:620px;
+    font-size:15px;
+    line-height:1.55;
+    margin:0 0 20px;
+  }
+
+  /* ===== Tabs styled like ballot stubs ===== */
+  nav.tabs{
+    display:flex;
+    gap:2px;
+    flex-wrap:wrap;
+    border-bottom:1px dashed var(--line);
+    padding-bottom:0;
+  }
+  nav.tabs button{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px;
+    letter-spacing:0.04em;
+    background:transparent;
+    color:#8B93AC;
+    border:1px solid var(--line);
+    border-bottom:none;
+    padding:11px 16px;
+    cursor:pointer;
+    border-radius:6px 6px 0 0;
+    position:relative;
+    top:1px;
+    transition:all .15s ease;
+  }
+  nav.tabs button .num{color:var(--signal);margin-right:6px;}
+  nav.tabs button:hover{color:var(--paper);background:rgba(255,255,255,0.03);}
+  nav.tabs button.active{
+    background:var(--paper);
+    color:var(--ink);
+    border-color:var(--paper);
+  }
+  nav.tabs button.active .num{color:var(--alert);}
+
+  main{
+    max-width:1100px;
+    margin:0 auto;
+    padding:28px 24px 80px;
+  }
+  section.panel{display:none;}
+  section.panel.active{display:block; animation:fade .25s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+
+  .lede{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    gap:20px;
+    flex-wrap:wrap;
+    margin-bottom:22px;
+  }
+  .lede h2{font-size:26px;margin:6px 0 6px;color:var(--paper);}
+  .lede p{color:#AEB6CC;max-width:560px;font-size:14.5px;line-height:1.6;margin:0;}
+
+  /* ===== MAP TAB ===== */
+  .map-wrap{
+    display:grid;
+    grid-template-columns: 1.35fr 1fr;
+    gap:22px;
+  }
+  @media (max-width:820px){ .map-wrap{grid-template-columns:1fr;} }
+
+  .grid-map{
+    display:grid;
+    grid-template-columns:repeat(14, 1fr);
+    grid-auto-rows:44px;
+    gap:4px;
+    background:var(--ink-2);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:14px;
+  }
+  .tile{
+    border-radius:5px;
+    border:1px solid rgba(241,238,228,0.14);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    font-weight:500;
+    letter-spacing:0.03em;
+    cursor:pointer;
+    color:var(--ink);
+    background:var(--civic);
+    transition:transform .12s ease, box-shadow .12s ease;
+    user-select:none;
+  }
+  .tile:hover{transform:translateY(-2px) scale(1.05); box-shadow:0 4px 10px rgba(0,0,0,0.35); z-index:2;}
+  .tile.battleground{background:var(--signal);}
+  .tile.selected{outline:2px solid var(--paper); outline-offset:1px;}
+
+  .legend{
+    display:flex;
+    gap:16px;
+    margin-top:12px;
+    flex-wrap:wrap;
+    font-size:12px;
+    color:#AEB6CC;
+  }
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .swatch{width:11px;height:11px;border-radius:3px;display:inline-block;}
+
+  .receipt{
+    background:var(--paper);
+    color:var(--ink);
+    border-radius:10px;
+    padding:22px 22px 20px;
+    position:relative;
+    min-height:380px;
+  }
+  .receipt::before{
+    content:"";
+    position:absolute;
+    top:0;left:0;right:0;height:4px;
+    background:repeating-linear-gradient(90deg, var(--alert) 0 10px, transparent 10px 20px);
+    border-radius:10px 10px 0 0;
+  }
+  .receipt .empty{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-start;
+    justify-content:center;
+    height:100%;
+    min-height:330px;
+    color:#6b7280;
+  }
+  .receipt .empty .big{font-family:'Spectral',serif;font-size:20px;color:var(--ink);margin-bottom:6px;}
+  .receipt h3{font-size:22px;margin:2px 0 2px;}
+  .receipt .ev{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    color:#5c5240;
+    margin-bottom:14px;
+  }
+  .tag-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}
+  .tag{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+    padding:3px 8px;
+    border-radius:20px;
+    border:1px solid #c9c2ac;
+  }
+  .tag.hot{background:var(--alert);color:#fff;border-color:var(--alert);}
+  .receipt ul{margin:0 0 14px;padding-left:18px;font-size:13.5px;line-height:1.6;}
+  .receipt .note-box{
+    background:var(--paper-2);
+    border-left:3px solid var(--civic);
+    padding:10px 12px;
+    font-size:12.5px;
+    line-height:1.55;
+    border-radius:0 6px 6px 0;
+    color:#3b3b3b;
+  }
+
+  /* ===== REPORTS TAB ===== */
+  .report-form{
+    background:var(--ink-2);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:20px;
+    margin-bottom:26px;
+  }
+  .report-form label{
+    display:block;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    color:var(--civic);
+    margin:14px 0 6px;
+  }
+  .report-form label:first-of-type{margin-top:0;}
+  .report-form input, .report-form textarea, .report-form select{
+    width:100%;
+    background:var(--ink);
+    border:1px solid var(--line);
+    color:var(--paper);
+    padding:10px 12px;
+    border-radius:6px;
+    font-family:'IBM Plex Sans',sans-serif;
+    font-size:14px;
+  }
+  .report-form textarea{min-height:130px;resize:vertical;line-height:1.5;}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:600px){.form-row{grid-template-columns:1fr;}}
+  .btn{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12.5px;
+    letter-spacing:0.04em;
+    background:var(--signal);
+    color:var(--ink);
+    border:none;
+    padding:11px 20px;
+    border-radius:6px;
+    cursor:pointer;
+    margin-top:16px;
+    font-weight:600;
+  }
+  .btn:hover{filter:brightness(1.08);}
+  .btn.ghost{
+    background:transparent;
+    border:1px solid var(--line);
+    color:#AEB6CC;
+  }
+  .btn.small{padding:6px 12px;font-size:11px;margin-top:0;}
+  .btn.danger{background:transparent;border:1px solid var(--alert);color:var(--alert);}
+
+  .report-card{
+    background:var(--paper);
+    color:var(--ink);
+    border-radius:10px;
+    padding:18px 20px;
+    margin-bottom:14px;
+  }
+  .report-card .meta{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:#6b6250;
+    display:flex;
+    justify-content:space-between;
+    margin-bottom:6px;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .report-card h4{margin:0 0 8px;font-size:18px;}
+  .report-card .body-text{font-size:13.5px;line-height:1.6;white-space:pre-wrap;}
+  .report-card .actions{margin-top:12px;display:flex;gap:8px;}
+  .empty-state{
+    color:#8B93AC;
+    font-size:14px;
+    border:1px dashed var(--line);
+    border-radius:8px;
+    padding:24px;
+    text-align:center;
+  }
+
+  /* ===== INEQUITIES TAB ===== */
+  .ineq-grid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:16px;
+  }
+  @media(max-width:700px){.ineq-grid{grid-template-columns:1fr;}}
+  .ineq-card{
+    background:var(--ink-2);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:20px;
+    border-top:3px solid var(--alert);
+  }
+  .ineq-card h3{font-size:17px;margin:0 0 8px;color:var(--paper);}
+  .ineq-card p{font-size:13.5px;line-height:1.6;color:#B7BFD4;margin:0;}
+  .ineq-card .idx{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:var(--signal);
+    display:block;
+    margin-bottom:8px;
+  }
+  .pull-quote{
+    font-family:'Spectral',serif;
+    font-style:italic;
+    font-size:19px;
+    line-height:1.5;
+    color:var(--paper);
+    border-left:3px solid var(--signal);
+    padding:6px 0 6px 18px;
+    margin:30px 0;
+    max-width:700px;
+  }
+
+  /* ===== LEGISLATION TAB ===== */
+  .leg-controls{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-bottom:18px;
+  }
+  .leg-controls select, .leg-controls input{
+    background:var(--ink-2);
+    border:1px solid var(--line);
+    color:var(--paper);
+    padding:9px 12px;
+    border-radius:6px;
+    font-family:'IBM Plex Sans',sans-serif;
+    font-size:13px;
+  }
+  .bill{
+    display:grid;
+    grid-template-columns:90px 1fr auto;
+    gap:16px;
+    align-items:start;
+    padding:16px 0;
+    border-bottom:1px solid var(--line);
+  }
+  @media(max-width:640px){.bill{grid-template-columns:1fr;} }
+  .bill .lvl{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    text-align:center;
+    padding:5px 6px;
+    border-radius:5px;
+    height:fit-content;
+  }
+  .bill .lvl.federal{background:var(--civic);color:var(--ink);}
+  .bill .lvl.state{background:var(--paper-2);color:var(--ink);}
+  .bill h4{margin:0 0 4px;font-size:15.5px;color:var(--paper);}
+  .bill .desc{font-size:13px;color:#AEB6CC;line-height:1.55;margin:0 0 6px;}
+  .bill .tags{display:flex;gap:6px;flex-wrap:wrap;}
+  .bill .status{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    padding:4px 10px;
+    border-radius:20px;
+    white-space:nowrap;
+    height:fit-content;
+    border:1px solid var(--line);
+  }
+  .status.enacted{color:var(--good);border-color:var(--good);}
+  .status.introduced{color:var(--signal);border-color:var(--signal);}
+  .status.struck{color:var(--alert);border-color:var(--alert);}
+  .status.pending{color:var(--civic);border-color:var(--civic);}
+  .bill.custom{border-left:2px solid var(--signal);padding-left:12px;}
+
+  .sources{
+    margin-top:40px;
+    font-size:11.5px;
+    color:#6b7280;
+    border-top:1px solid var(--line);
+    padding-top:16px;
+    line-height:1.7;
+  }
+  footer.site{
+    text-align:center;
+    color:#5B6480;
+    font-size:11.5px;
+    padding:30px 24px 50px;
+    font-family:'IBM Plex Mono',monospace;
+  }
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="mark">
+    <span class="stub">FILE NO. AI‑2026‑ELEX</span>
+    <span class="stub" id="clock"></span>
+  </div>
+  <h1>Ballot & <em>Byte</em></h1>
+  <p class="sub">A working dashboard on how artificial intelligence is reshaping American elections — state by state, unevenly, and faster than the law can track it.</p>
+  <nav class="tabs">
+    <button class="active" data-tab="map"><span class="num">01</span>State Map</button>
+    <button data-tab="reports"><span class="num">02</span>Research Reports</button>
+    <button data-tab="inequities"><span class="num">03</span>Inequities</button>
+    <button data-tab="legislation"><span class="num">04</span>Legislation Tracker</button>
+  </nav>
+</header>
+
+<main>
+
+  <!-- ============ TAB 1: MAP ============ -->
+  <section class="panel active" id="tab-map">
+    <div class="lede">
+      <div>
+        <span class="eyebrow">01 / Interactive</span>
+        <h2>Click a state</h2>
+        <p>Every tile is a state. Amber tiles are 2024–2026 cycle battlegrounds, where AI-generated disinformation, robocalls, and synthetic media carry outsized weight because margins are thin. Click any tile for a briefing.</p>
+      </div>
+    </div>
+
+    <div class="map-wrap">
+      <div>
+        <div class="grid-map" id="gridMap"></div>
+        <div class="legend">
+          <span><i class="swatch" style="background:var(--civic)"></i>Non-battleground</span>
+          <span><i class="swatch" style="background:var(--signal)"></i>2024–26 battleground</span>
+          <span><i class="swatch" style="background:transparent;border:2px solid var(--paper);width:9px;height:9px"></i>Selected</span>
+        </div>
+      </div>
+
+      <div class="receipt" id="receipt">
+        <div class="empty">
+          <div class="big">No state selected</div>
+          <div>Tap a tile on the grid to open its briefing — electoral weight, watch areas, and any legislation on record.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TAB 2: RESEARCH REPORTS ============ -->
+  <section class="panel" id="tab-reports">
+    <div class="lede">
+      <div>
+        <span class="eyebrow">02 / Submit</span>
+        <h2>Research reports</h2>
+        <p>Log findings, citations, or field notes on AI's role in elections. Saved to this browser only — nothing here is shared or public.</p>
+      </div>
+    </div>
+
+    <div class="report-form">
+      <label for="rTitle">Title</label>
+      <input id="rTitle" type="text" placeholder="e.g. Synthetic robocalls in the NH 2024 primary">
+      <div class="form-row">
+        <div>
+          <label for="rAuthor">Author / source</label>
+          <input id="rAuthor" type="text" placeholder="e.g. your name, or org">
+        </div>
+        <div>
+          <label for="rState">Related state (optional)</label>
+          <select id="rState"><option value="">— General / multi-state —</option></select>
+        </div>
+      </div>
+      <label for="rBody">Summary / findings</label>
+      <textarea id="rBody" placeholder="Paste an abstract, findings, or notes..."></textarea>
+      <button class="btn" onclick="saveReport()">Save report</button>
+      <span id="rStatus" style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--good);margin-left:12px;"></span>
+    </div>
+
+    <div id="reportList"></div>
+  </section>
+
+  <!-- ============ TAB 3: INEQUITIES ============ -->
+  <section class="panel" id="tab-inequities">
+    <div class="lede">
+      <div>
+        <span class="eyebrow">03 / Analysis</span>
+        <h2>Who AI leaves exposed</h2>
+        <p>AI's impact on elections isn't evenly distributed. The same tools that help a well-funded county flag disinformation in hours can take a small, understaffed office weeks to even notice.</p>
+      </div>
+    </div>
+
+    <p class="pull-quote">"The tools are neutral. The capacity to defend against them is not."</p>
+
+    <div class="ineq-grid">
+      <div class="ineq-card">
+        <span class="idx">01 — Detection gap</span>
+        <h3>Resourced vs. under-resourced election offices</h3>
+        <p>Large counties and well-funded state agencies increasingly deploy AI-assisted monitoring to catch deepfakes and coordinated disinformation quickly. Rural counties and small-budget jurisdictions — often the same places already short on poll workers — usually have neither the software nor the staff time to do the same, so false content circulates longer before anyone official responds.</p>
+      </div>
+      <div class="ineq-card">
+        <span class="idx">02 — Language access</span>
+        <h3>Non-English speaking voters</h3>
+        <p>Content-moderation and fact-checking systems are trained and tuned overwhelmingly on English-language data. Synthetic disinformation in Spanish, Mandarin, Vietnamese, and other languages spoken by large voter blocs is detected later and corrected less consistently — leaving those communities exposed longer to the same tactics.</p>
+      </div>
+      <div class="ineq-card">
+        <span class="idx">03 — Voter roll automation</span>
+        <h3>Algorithmic list maintenance</h3>
+        <p>States increasingly use automated matching tools to flag voters for removal from rolls (duplicate registrations, address changes, deceased voters). These systems have a documented history of disproportionate false-positive rates for voters with common surnames, hyphenated names, or frequent movers — patterns that skew toward specific racial and language communities.</p>
+      </div>
+      <div class="ineq-card">
+        <span class="idx">04 — Disability & accessibility</span>
+        <h3>Uneven adoption of assistive AI</h3>
+        <p>AI-driven accessibility tools (screen-reading ballot marking devices, voice interfaces) exist, but adoption is inconsistent across jurisdictions and often tied to local budgets. Voters with disabilities in lower-funded areas frequently rely on older, less capable equipment, while also being a documented target for tailored disinformation about voting procedures.</p>
+      </div>
+      <div class="ineq-card">
+        <span class="idx">05 — Legal patchwork</span>
+        <h3>Protection depends on your zip code</h3>
+        <p>As of mid-2026, roughly 30 states have enacted election-deepfake laws — meaning a comparable number have not. A synthetic robocall or fabricated candidate video can be illegal to distribute in one state and unregulated just across the border, with no equivalent federal floor in place.</p>
+      </div>
+      <div class="ineq-card">
+        <span class="idx">06 — Targeting precision</span>
+        <h3>Micro-targeted synthetic content</h3>
+        <p>Generative AI lowers the cost of producing large volumes of tailored, hyper-local disinformation — a fabricated "your polling place moved" message customized by precinct, for instance. That precision advantages whoever can afford the tooling, and disadvantages communities least equipped to verify claims quickly through trusted local channels.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TAB 4: LEGISLATION TRACKER ============ -->
+  <section class="panel" id="tab-legislation">
+    <div class="lede">
+      <div>
+        <span class="eyebrow">04 / Interactive</span>
+        <h2>Legislation tracker</h2>
+        <p>A working log of AI-and-elections bills — federal and state. Seeded with known activity through mid-2026; add anything you're tracking and it saves to this browser.</p>
+      </div>
+    </div>
+
+    <div class="leg-controls">
+      <select id="filterLevel">
+        <option value="all">All levels</option>
+        <option value="federal">Federal</option>
+        <option value="state">State</option>
+      </select>
+      <select id="filterStatus">
+        <option value="all">All statuses</option>
+        <option value="enacted">Enacted</option>
+        <option value="introduced">Introduced / pending</option>
+        <option value="struck">Struck down / challenged</option>
+      </select>
+      <input id="filterSearch" type="text" placeholder="Search bill, state, or keyword...">
+    </div>
+
+    <div id="billList"></div>
+
+    <div class="report-form" style="margin-top:28px;">
+      <label style="margin-top:0;">Add a bill you're tracking</label>
+      <div class="form-row">
+        <input id="bName" type="text" placeholder="Bill name / number, e.g. HB 1234">
+        <input id="bJurisdiction" type="text" placeholder="Jurisdiction, e.g. Virginia or Federal">
+      </div>
+      <div class="form-row" style="margin-top:14px;">
+        <select id="bLevel">
+          <option value="state">State</option>
+          <option value="federal">Federal</option>
+        </select>
+        <select id="bStatus">
+          <option value="introduced">Introduced / pending</option>
+          <option value="enacted">Enacted</option>
+          <option value="struck">Struck down / challenged</option>
+        </select>
+      </div>
+      <label for="bDesc">What it does</label>
+      <textarea id="bDesc" placeholder="One or two sentences..."></textarea>
+      <button class="btn" onclick="saveBill()">Add to tracker</button>
+      <span id="bStatusMsg" style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--good);margin-left:12px;"></span>
+    </div>
+
+    <div class="sources">
+      Seed data compiled from: Public Citizen's state deepfake-election legislation tracker (updated May–June 2026); Ballotpedia's AI Deepfake Legislation Tracker; NBC News reporting on 2026 state AI/election laws taking effect; Biometric Update coverage of Maryland SB 141; and MultiState's 2026 state AI legislation guide. State law lists change often — treat the seed entries as a snapshot, not a live feed, and verify before citing.
+    </div>
+  </section>
+
+</main>
+
+<footer class="site">BALLOT &amp; BYTE — a self-hosted tracking tool · built for your own research use · data stored locally in your browser</footer>
+
+<script>
+/* ---------- Clock ---------- */
+document.getElementById('clock').textContent = new Date().toLocaleDateString('en-US',{month:'short',day:'2-digit',year:'numeric'});
+
+/* ---------- Tabs ---------- */
+document.querySelectorAll('nav.tabs button').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('section.panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+  });
+});
+
+/* ---------- State data ---------- */
+const STATES = [
+  {ab:'AK',name:'Alaska',ev:3,row:1,col:1,bg:false},
+  {ab:'ME',name:'Maine',ev:4,row:1,col:13,bg:false,note:'Splits electoral votes by congressional district.'},
+
+  {ab:'WA',name:'Washington',ev:12,row:2,col:2,bg:false},
+  {ab:'ID',name:'Idaho',ev:4,row:2,col:3,bg:false},
+  {ab:'MT',name:'Montana',ev:4,row:2,col:4,bg:false,note:'Passed a 2026 law requiring disclosure of AI-generated content in election communications.'},
+  {ab:'ND',name:'North Dakota',ev:3,row:2,col:5,bg:false},
+  {ab:'MN',name:'Minnesota',ev:10,row:2,col:6,bg:false},
+  {ab:'WI',name:'Wisconsin',ev:10,row:2,col:7,bg:true},
+  {ab:'MI',name:'Michigan',ev:15,row:2,col:9,bg:true,note:'Recent legislative activity (SB 760) tracked as part of the state\u2019s broader 2026 AI bill package.'},
+  {ab:'NY',name:'New York',ev:28,row:2,col:11,bg:false},
+  {ab:'VT',name:'Vermont',ev:3,row:2,col:12,bg:false},
+  {ab:'NH',name:'New Hampshire',ev:4,row:2,col:13,bg:false,note:'Site of the widely-reported January 2024 AI-generated robocall impersonating President Biden urging Democrats to skip the primary — one of the first prosecuted political deepfake incidents in the U.S.'},
+
+  {ab:'OR',name:'Oregon',ev:8,row:3,col:2,bg:false},
+  {ab:'NV',name:'Nevada',ev:6,row:3,col:3,bg:true},
+  {ab:'WY',name:'Wyoming',ev:3,row:3,col:4,bg:false},
+  {ab:'SD',name:'South Dakota',ev:3,row:3,col:5,bg:false,note:'Enacted a 2026 law requiring disclosure of AI-generated content in election materials.'},
+  {ab:'IA',name:'Iowa',ev:6,row:3,col:6,bg:false},
+  {ab:'IL',name:'Illinois',ev:19,row:3,col:7,bg:false,note:'SB 315, a broad AI regulation bill, passed both chambers in 2026 and was pending the governor\u2019s signature as of the latest tracked update.'},
+  {ab:'IN',name:'Indiana',ev:11,row:3,col:8,bg:false},
+  {ab:'OH',name:'Ohio',ev:17,row:3,col:9,bg:false},
+  {ab:'PA',name:'Pennsylvania',ev:19,row:3,col:10,bg:true},
+  {ab:'NJ',name:'New Jersey',ev:14,row:3,col:11,bg:false},
+  {ab:'CT',name:'Connecticut',ev:7,row:3,col:12,bg:false,note:'SB 5 tracked as part of the state\u2019s 2026 AI legislative package.'},
+  {ab:'MA',name:'Massachusetts',ev:11,row:3,col:13,bg:false},
+  {ab:'RI',name:'Rhode Island',ev:4,row:3,col:14,bg:false},
+
+  {ab:'CA',name:'California',ev:54,row:4,col:2,bg:false,note:'One of the most active states on AI regulation: SB 53 (frontier model safety, in effect Jan 2026), SB 942 (AI content disclosure, effective Aug 2026), SB 243 (companion chatbot disclosure). A separate California election-deepfake law was struck down by a federal judge as overly broad.'},
+  {ab:'UT',name:'Utah',ev:6,row:4,col:3,bg:false},
+  {ab:'CO',name:'Colorado',ev:10,row:4,col:4,bg:false,note:'Colorado\u2019s AI Act (SB 26-189) is signed and set to take effect January 2027, with parts of the disclosure framework pending attorney-general rulemaking.'},
+  {ab:'NE',name:'Nebraska',ev:5,row:4,col:5,bg:false},
+  {ab:'MO',name:'Missouri',ev:10,row:4,col:6,bg:false},
+  {ab:'KY',name:'Kentucky',ev:8,row:4,col:7,bg:false,note:'SB 4 created new protections against deceptive political synthetic media, with restrictions during election periods.'},
+  {ab:'WV',name:'West Virginia',ev:4,row:4,col:8,bg:false},
+  {ab:'VA',name:'Virginia',ev:13,row:4,col:9,bg:false},
+  {ab:'MD',name:'Maryland',ev:10,row:4,col:10,bg:false,note:'Became the 30th U.S. state with election-deepfake protections when Gov. Wes Moore signed SB 141 in 2026, giving election officials a defined role in responding to deepfake reports.'},
+  {ab:'DE',name:'Delaware',ev:3,row:4,col:11,bg:false},
+
+  {ab:'AZ',name:'Arizona',ev:11,row:5,col:3,bg:true},
+  {ab:'NM',name:'New Mexico',ev:5,row:5,col:4,bg:false},
+  {ab:'KS',name:'Kansas',ev:6,row:5,col:5,bg:false,note:'SB 186 and HB 2183 expanded criminal definitions around synthetic media, including manipulated depictions of identifiable individuals.'},
+  {ab:'AR',name:'Arkansas',ev:6,row:5,col:6,bg:false,note:'Multiple 2024–2026 measures (HB 1877, HB 1529, HB 1071) expanded liability for AI-generated imagery and synthetic-content distribution.'},
+  {ab:'TN',name:'Tennessee',ev:11,row:5,col:7,bg:false},
+  {ab:'NC',name:'North Carolina',ev:16,row:5,col:8,bg:true},
+  {ab:'SC',name:'South Carolina',ev:9,row:5,col:9,bg:false},
+  {ab:'DC',name:'Washington D.C.',ev:3,row:5,col:10,bg:false},
+
+  {ab:'OK',name:'Oklahoma',ev:7,row:6,col:5,bg:false},
+  {ab:'LA',name:'Louisiana',ev:8,row:6,col:6,bg:false},
+  {ab:'MS',name:'Mississippi',ev:6,row:6,col:7,bg:false},
+  {ab:'AL',name:'Alabama',ev:9,row:6,col:8,bg:false,note:'HB 172 targets deceptive political synthetic media; HB 161 and HB 168 extend liability for non-consensual synthetic content, including involving minors.'},
+  {ab:'GA',name:'Georgia',ev:16,row:6,col:9,bg:true},
+
+  {ab:'TX',name:'Texas',ev:40,row:7,col:5,bg:false},
+  {ab:'FL',name:'Florida',ev:30,row:7,col:10,bg:false},
+
+  {ab:'HI',name:'Hawaii',ev:4,row:8,col:2,bg:false},
+];
+
+/* ---------- Build grid map ---------- */
+const gridMap = document.getElementById('gridMap');
+STATES.forEach(s=>{
+  const el = document.createElement('div');
+  el.className = 'tile' + (s.bg ? ' battleground' : '');
+  el.style.gridRow = s.row;
+  el.style.gridColumn = s.col;
+  el.textContent = s.ab;
+  el.title = s.name;
+  el.addEventListener('click', ()=>selectState(s, el));
+  gridMap.appendChild(el);
+});
+
+const GENERIC_WATCH = [
+  'AI-generated robocalls and synthetic audio impersonating candidates or officials',
+  'Micro-targeted disinformation about polling locations, dates, or eligibility',
+  'Automated voter-roll matching tools and their false-positive rates',
+  'Local election office capacity to detect and correct synthetic content quickly'
+];
+
+function selectState(s, el){
+  document.querySelectorAll('.tile').forEach(t=>t.classList.remove('selected'));
+  el.classList.add('selected');
+
+  const receipt = document.getElementById('receipt');
+  const watch = GENERIC_WATCH.map(w=>`<li>${w}</li>`).join('');
+
+  receipt.innerHTML = `
+    <div class="ev">RECEIPT NO. ${s.ab}-${s.ev.toString().padStart(2,'0')}</div>
+    <h3>${s.name}</h3>
+    <div class="tag-row">
+      <span class="tag">${s.ev} electoral votes</span>
+      ${s.bg ? '<span class="tag hot">2024\u201326 battleground</span>' : '<span class="tag">non-battleground</span>'}
+    </div>
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#6b6250;margin-bottom:8px;">WATCH AREAS</div>
+    <ul>${watch}</ul>
+    <div class="note-box">${s.note ? s.note : 'No specific bill confirmed in this dataset yet for '+s.name+'. Check the Legislation Tracker tab, and cross-reference Public Citizen\u2019s or Ballotpedia\u2019s live trackers for the latest status.'}</div>
+  `;
+}
+
+/* ---------- Populate state dropdown for reports ---------- */
+const rState = document.getElementById('rState');
+STATES.slice().sort((a,b)=>a.name.localeCompare(b.name)).forEach(s=>{
+  const o = document.createElement('option');
+  o.value = s.name; o.textContent = s.name;
+  rState.appendChild(o);
+});
+
+/* ---------- Reports: storage ---------- */
+async function loadReports(){
+  try{
+    const res = await window.storage.get('reports-list');
+    return res && res.value ? JSON.parse(res.value) : [];
+  }catch(e){ return []; }
+}
+async function persistReports(list){
+  try{ await window.storage.set('reports-list', JSON.stringify(list)); }catch(e){ console.error(e); }
+}
+async function renderReports(){
+  const list = await loadReports();
+  const wrap = document.getElementById('reportList');
+  if(!list.length){
+    wrap.innerHTML = '<div class="empty-state">No reports saved yet. Add one above — it stays in this browser.</div>';
+    return;
+  }
+  wrap.innerHTML = list.slice().reverse().map(r=>`
+    <div class="report-card">
+      <div class="meta"><span>${r.state ? r.state : 'General / multi-state'} &middot; ${new Date(r.ts).toLocaleDateString()}</span><span>${r.author ? r.author : ''}</span></div>
+      <h4>${escapeHtml(r.title)}</h4>
+      <div class="body-text">${escapeHtml(r.body)}</div>
+      <div class="actions"><button class="btn small danger" onclick="deleteReport(${r.ts})">Delete</button></div>
+    </div>
+  `).join('');
+}
+async function saveReport(){
+  const title = document.getElementById('rTitle').value.trim();
+  const author = document.getElementById('rAuthor').value.trim();
+  const state = document.getElementById('rState').value;
+  const body = document.getElementById('rBody').value.trim();
+  if(!title || !body){
+    document.getElementById('rStatus').style.color = 'var(--alert)';
+    document.getElementById('rStatus').textContent = 'Add at least a title and summary.';
+    return;
+  }
+  const list = await loadReports();
+  list.push({ts:Date.now(), title, author, state, body});
+  await persistReports(list);
+  document.getElementById('rTitle').value='';
+  document.getElementById('rAuthor').value='';
+  document.getElementById('rBody').value='';
+  document.getElementById('rState').value='';
+  document.getElementById('rStatus').style.color='var(--good)';
+  document.getElementById('rStatus').textContent='Saved.';
+  setTimeout(()=>document.getElementById('rStatus').textContent='',2000);
+  renderReports();
+}
+async function deleteReport(ts){
+  let list = await loadReports();
+  list = list.filter(r=>r.ts !== ts);
+  await persistReports(list);
+  renderReports();
+}
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+renderReports();
+
+/* ---------- Legislation: seed + storage ---------- */
+const SEED_BILLS = [
+  {name:'TAKE IT DOWN Act', jurisdiction:'Federal', level:'federal', status:'enacted', desc:'Signed May 2025. Requires platforms to remove AI-generated non-consensual intimate imagery within a defined window; full platform compliance requirements took effect May 19, 2026.'},
+  {name:'AI federal preemption push', jurisdiction:'Federal', level:'federal', status:'introduced', desc:'Ongoing executive and congressional effort to establish a single national AI policy that would limit state-level AI laws, including election-deepfake rules. Not enacted as binding legislation as of mid-2026; opposed by groups arguing it would nullify state election protections without a federal replacement.'},
+  {name:'SB 141', jurisdiction:'Maryland', level:'state', status:'enacted', desc:'Made Maryland the 30th state with election-deepfake protections. Gives election officials a role in responding to reports and creates legal consequences for knowingly distributing false AI-generated election content.'},
+  {name:'SB 53', jurisdiction:'California', level:'state', status:'enacted', desc:'Frontier AI model safety and transparency reporting requirements; took effect January 1, 2026.'},
+  {name:'SB 942', jurisdiction:'California', level:'state', status:'enacted', desc:'Requires certain large public-facing AI systems to disclose when content is AI-generated or AI-modified; effective August 2, 2026.'},
+  {name:'Election deepfake law (2019\u20132024)', jurisdiction:'California', level:'state', status:'struck', desc:'An earlier California law restricting deceptive political deepfakes was struck down by a federal judge as overly broad and content-discriminatory.'},
+  {name:'SB 26-189 (Colorado AI Act)', jurisdiction:'Colorado', level:'state', status:'enacted', desc:'Broad AI accountability law; set to take effect January 1, 2027, with parts of the disclosure framework pending attorney-general rulemaking.'},
+  {name:'SB 315', jurisdiction:'Illinois', level:'state', status:'introduced', desc:'Broad AI regulation bill that passed both legislative chambers in 2026; awaiting the governor\u2019s signature as of the latest tracked update.'},
+  {name:'HB 172', jurisdiction:'Alabama', level:'state', status:'enacted', desc:'Targets deceptive political synthetic media and creates new election-integrity protections during campaign periods.'},
+  {name:'SB 4', jurisdiction:'Kentucky', level:'state', status:'enacted', desc:'New protections against deceptive political synthetic media, including restrictions during election periods.'},
+  {name:'SB 186 / HB 2183', jurisdiction:'Kansas', level:'state', status:'enacted', desc:'Expanded criminal definitions covering synthetic media and manipulated depictions of identifiable individuals.'},
+  {name:'Deepfake disclosure law', jurisdiction:'Montana', level:'state', status:'enacted', desc:'Requires disclosure when election communications include AI-generated or manipulated content, effective for the 2026 cycle.'},
+  {name:'Deepfake disclosure law', jurisdiction:'South Dakota', level:'state', status:'enacted', desc:'Requires disclosure when election communications include AI-generated or manipulated content, effective for the 2026 cycle.'},
+];
+
+async function loadCustomBills(){
+  try{
+    const res = await window.storage.get('custom-bills');
+    return res && res.value ? JSON.parse(res.value) : [];
+  }catch(e){ return []; }
+}
+async function persistCustomBills(list){
+  try{ await window.storage.set('custom-bills', JSON.stringify(list)); }catch(e){ console.error(e); }
+}
+
+async function renderBills(){
+  const custom = (await loadCustomBills()).map(b=>({...b, custom:true}));
+  const all = [...SEED_BILLS, ...custom];
+
+  const level = document.getElementById('filterLevel').value;
+  const status = document.getElementById('filterStatus').value;
+  const q = document.getElementById('filterSearch').value.trim().toLowerCase();
+
+  const filtered = all.filter(b=>{
+    if(level !== 'all' && b.level !== level) return false;
+    if(status !== 'all' && b.status !== status) return false;
+    if(q && !(b.name.toLowerCase().includes(q) || b.jurisdiction.toLowerCase().includes(q) || b.desc.toLowerCase().includes(q))) return false;
+    return true;
+  });
+
+  const wrap = document.getElementById('billList');
+  if(!filtered.length){
+    wrap.innerHTML = '<div class="empty-state">No bills match those filters.</div>';
+    return;
+  }
+  const statusLabel = {enacted:'Enacted', introduced:'Introduced / pending', struck:'Struck down / challenged'};
+  wrap.innerHTML = filtered.map(b=>`
+    <div class="bill ${b.custom ? 'custom' : ''}">
+      <div class="lvl ${b.level}">${b.level === 'federal' ? 'FEDERAL' : 'STATE'}</div>
+      <div>
+        <h4>${escapeHtml(b.name)} &nbsp;&middot;&nbsp; ${escapeHtml(b.jurisdiction)}</h4>
+        <p class="desc">${escapeHtml(b.desc)}</p>
+      </div>
+      <div class="status ${b.status}">${statusLabel[b.status]}</div>
+    </div>
+  `).join('');
+}
+['filterLevel','filterStatus'].forEach(id=>document.getElementById(id).addEventListener('change', renderBills));
+document.getElementById('filterSearch').addEventListener('input', renderBills);
+
+async function saveBill(){
+  const name = document.getElementById('bName').value.trim();
+  const jurisdiction = document.getElementById('bJurisdiction').value.trim();
+  const level = document.getElementById('bLevel').value;
+  const status = document.getElementById('bStatus').value;
+  const desc = document.getElementById('bDesc').value.trim();
+  if(!name || !jurisdiction || !desc){
+    document.getElementById('bStatusMsg').style.color = 'var(--alert)';
+    document.getElementById('bStatusMsg').textContent = 'Fill in bill name, jurisdiction, and description.';
+    return;
+  }
+  const list = await loadCustomBills();
+  list.push({name, jurisdiction, level, status, desc});
+  await persistCustomBills(list);
+  document.getElementById('bName').value='';
+  document.getElementById('bJurisdiction').value='';
+  document.getElementById('bDesc').value='';
+  document.getElementById('bStatusMsg').style.color='var(--good)';
+  document.getElementById('bStatusMsg').textContent='Added.';
+  setTimeout(()=>document.getElementById('bStatusMsg').textContent='',2000);
+  renderBills();
+}
+renderBills();
+</script>
+</body>
+</html>
